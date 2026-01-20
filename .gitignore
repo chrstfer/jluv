@@ -8,6 +8,7 @@ notebooks/
 # i use emacs and it likes to pollute the directory when a file is open, even if its saved
 *~
 \#*\#
+.\#*\#
 
 # Created by https://www.toptal.com/developers/gitignore/api/jupyternotebooks,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=jupyternotebooks,python
