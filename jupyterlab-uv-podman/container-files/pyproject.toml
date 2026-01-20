@@ -1,0 +1,60 @@
+[project]
+name = "jupyterlab-uv-custom"
+version = "0.1.0"
+requires-python = ">=3.12"
+
+dependencies = [
+  "altair",
+
+  "bokeh",
+  "bottleneck",
+  "cloudpickle",
+  "cython",
+  "dask",
+  "dill",
+
+  "h5py",
+
+  "numexpr",
+  "openpyxl",
+  "pandas",
+  
+  "patsy",
+  "protobuf",
+  "tables",
+
+  "scikit-image",
+  "scikit-learn",
+  "scipy",
+
+  "sympy",
+  "xlrd",
+  
+  "ipykernel",
+  "ipympl",
+  "ipywidgets",
+  "widgetsnbextension",
+
+  "dotenv",
+  "matplotlib",
+  "seaborn",
+  "sqlalchemy",
+  "polars",
+  "httpx",
+  "beautifulsoup4",
+  "numba",
+
+  "jupyterlab_lsp",
+  "python-lsp-server[all]",
+  "jupyterlab-git",
+  # todo: get ty to work with lsp plugin
+  #"ruff",
+  #"ty"
+]
+
+
+#[tool.ty.rules]
+# unused-ignore-comment = "warn"
+# redundant-cast = "ignore"
+# possibly-missing-attribute = "error"
+# possibly-missing-import = "error"

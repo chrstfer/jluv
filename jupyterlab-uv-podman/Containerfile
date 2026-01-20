@@ -1,0 +1,99 @@
+## -*- containerfile-image-name: "jupyterlab-uv-custom" -*-
+
+# Modified from the official jupyter dockerfile (datascience-notebook iirc) to
+# use uv and to use a unix socket (better access control on shared servers) If
+# running this on a remote shared server, SSH tunnel it to a port on your
+# localhost: `ssh -L 8888:/path/to/socket.sock user@server` Note: You will need
+# to manually `podman unshare chmod 660 sockets/socket.sock` the socket, and
+# there's some setup. For more info see the README.md
+
+# Plan is to rewrite this from scratch to be podman (OCI) compatible, using the
+# docker-stacks as a reference. I'll of course keep a note thanking them.
+
+# Original is Copyright (c) Jupyter Development Team.
+# Distributed under the terms of the Modified BSD License.
+
+
+ARG REGISTRY=quay.io
+ARG OWNER=jupyter
+ARG BASE_IMAGE=$REGISTRY/$OWNER/minimal-notebook
+FROM $BASE_IMAGE
+
+# my project uses 3.12 but set it to what you need; jupyter supports from 3.7 as of Jan 2026 according to google 
+ARG PYTHON_VERSION=3.12
+ARG CONTAINER_FILES="./container-files"
+
+# ARG NB_USER="jovyan"
+# ARG NB_UID="1000"
+# ARG NB_GID="100" 
+
+# Not podman (OCI) compatible
+# Fix: https://github.com/hadolint/hadolint/wiki/DL4006
+# Fix: https://github.com/koalaman/shellcheck/wiki/SC3014
+# SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+COPY --from=ghcr.io/astral-sh/uv:0.9.15 /uv /uvx /bin/
+
+USER root
+
+RUN apt-get update --yes
+RUN apt-get install --yes --no-install-recommends \
+    # for cython: https://cython.readthedocs.io/en/latest/src/quickstart/install.html
+    build-essential \
+    # for latex labels
+    cm-super \
+    dvipng \
+    # for matplotlib anim
+    ffmpeg \
+    # for jupyter plugins
+    nodejs
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# More info: https://github.com/jupyter/docker-stacks/issues/2296
+# hadolint ignore=DL3059
+RUN rm -rf "/home/${NB_USER}/.cache/"
+
+# switch to user joyvan and create some dirs
+USER ${NB_UID}
+WORKDIR /home/jovyan
+
+RUN mkdir notebooks .sockets
+
+# General env vars
+ENV PATH="${HOME}/.local/bin:$PATH"
+
+# uv env vars
+ENV UV_TOOL_BIN_DIR="~/.uv_tools"
+# Jupyter env vars
+ENV JP_SOCK="/home/jovyan/.sockets/jupyterlab-server.sock"
+
+#General File Includes
+ADD --chown=${NB_UID}:${NB_GID} ${CONTAINER_FILES}/.config /home/jovyan/.config
+ADD --chown=${NB_UID}:${NB_GID} ${CONTAINER_FILES}/.env.local /home/jovyan/.env.local
+
+# uv File Includes
+ADD --chown=${NB_UID}:${NB_GID} ${CONTAINER_FILES}/.python-version /home/jovyan/
+ADD --chown=${NB_UID}:${NB_GID} ${CONTAINER_FILES}/pyproject.toml /home/jovyan/
+
+# Sync uv before doing the Jupyter stuff
+RUN uv sync
+
+# Jupyter config adds
+ADD --chown=${NB_UID}:${NB_GID} ${CONTAINER_FILES}/.jupyter/jupyter_server_config.py /home/jovyan/.jupyter/jupyter_server_config.py
+ADD --chown=${NB_UID}:${NB_GID} ${CONTAINER_FILES}/.jupyter/jupyter_server_config.d /home/jovyan/.jupyter/jupyter_server_config.d/
+# Add kernel
+RUN uv run --python 3.12 -m ipykernel install --user --name uvkernel --display-name "Python (uv 3.12 kernel)"
+
+# Add Project
+# TODO: add some variables for project name, python version, etc, then a RUN that creates a project kernel; then we can cut down the main uv requirements
+# ADD --chown=${NB_UID}:${NB_GID} project /home/jovyan/project
+
+# Debugging
+# RUN id && ls -la && echo "${NB_USER} (${NB_UID}:${NB_GID})"
+
+# CMD bash # for dev
+# CMD ["bash", "-c", "~/scripts/command_start.sh"]
+CMD uv run --python 3.12 jupyter lab --no-browser --sock "${JP_SOCK}" --IdentityProvider.token='pw !2345'
+
+# if you build and tag jluv:latest then you can create with 
+# podman create --name jluv-dev --replace --volume "$PWD/sockets:/home/jovyan/sockets" --volume "$PWD/notebooks:/home/jovyan/notebooks" jluv:latest
