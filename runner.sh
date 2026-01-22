@@ -16,7 +16,7 @@ build_container_image () {
 }
 
 create_container () {
-    podman create  --name "${CONTAINER_NAME}" --replace -v "$PWD/sockets:/home/jovyan/.sockets" -v "$PWD/notebooks:/home/jovyan/notebooks" "$IMAGE_NAME":latest
+    podman create  --name "${CONTAINER_NAME}" --replace -v "$PWD/sockets:/home/jluv/.sockets" -v "$PWD/notebooks:/home/jluv/notebooks" "$IMAGE_NAME":latest
 }
 
 fix_dir_permissions () {

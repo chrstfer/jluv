@@ -4,39 +4,38 @@ version = "0.1.0"
 requires-python = ">=3.12"
 
 dependencies = [
-  "altair",
+  "jupyter-core",
+  "jupyterlab",
+  "nbclassic",
+  "notebook>=7.2.2",
+  "ipython",
+  "ipykernel",
+  "ipympl",
+  "ipywidgets",
+  "matplotlib",  
+  "widgetsnbextension",
 
+  "altair",
   "bokeh",
   "bottleneck",
   "cloudpickle",
   "cython",
   "dask",
   "dill",
-
   "h5py",
-
   "numexpr",
   "openpyxl",
-  "pandas",
-  
   "patsy",
   "protobuf",
   "tables",
-
-  "scikit-image",
-  "scikit-learn",
-  "scipy",
-
   "sympy",
   "xlrd",
-  
-  "ipykernel",
-  "ipympl",
-  "ipywidgets",
-  "widgetsnbextension",
 
+  "scipy",
+  "scikit-image",
+  "scikit-learn",
+  "statsmodels",
   "dotenv",
-  "matplotlib",
   "seaborn",
   "sqlalchemy",
   "polars",
