@@ -22,15 +22,23 @@ and I want others to know.
   - pympl and pywidgets for matplotlib widgets
 - A shared folder (~/notebooks in the container) for saving notebooks to the
   host (I needed a shared folder for the socket too, might as well add this one)
-  
-  
+    
+** Container Architecture
+*** Base Image: ubuntu:24.04
+*** Package Manager: uv (Rust-based)
+*** Key Benefits
+- uv over conda
+  - 10-100x Faster resolution than Conda
+  - Reduced image footprint
+  - Deterministic builds via uv.lock
+
 ** TODO To-Do:
 - [X] Rewrite the Containerfile from scratch, pulling what needs to be pulled in
-      from the Jupyter docker-stacks repo. I don't want to call it bloated, it
-      just has more than I need and isn't fully OCI compliant (uses "SHELL"
-      instruction).
+  from the Jupyter docker-stacks repo. I don't want to call it bloated, it
+  just has more than I need and isn't fully OCI compliant (uses "SHELL"
+  instruction).
 - [-] Switch entirely over to uv. Currently there is still conda reliance and it
-      loads a conda venv by default (I'd rather it use uv)
+  loads a conda venv by default (I'd rather it use uv)
 - [X] change the username
 - [-] ARG variables to control build and run
 - [X] Manage install of jupyter/dependencies with uv
@@ -39,11 +47,18 @@ and I want others to know.
 - [ ] Setup Multistage build, separating ubuntu package install from general setup?
   - [ ] Generally optimize Containerfile while we're at it, for size and speed of build
 - [ ] Remove/switch label references from "docker" to something more standards oriented (ie "container")
-- [ ] Deep dive into this permissions issue and cache issue. 
+- [ ] Deep dive into this permissions issue and cache issue.
+- [ ] Update to python 3.14 if possible with needed packages (cull back list)
+- [ ] Create a hardened final image taking this image as a prior stage setting
+  up the environment but removing as much as possible to reduce dependencies,
+  image size, and attack surface.
+- [ ] Benchmark against official jupyter images with conda
 *** plugins to look into
 - https://github.com/leotaku/jupyter-ruff
--  
-** Thanks
+- 
+* Benchmark
+** Official Jupyter image: 
+* Thanks
 A lot of this is based on Jupyter's docker-stacks. Original version uses
 minimal-notebook as a base image, and is based on a stripped down version of the
 scipy and datascience notebooks that i converted to use uv. However, as I use
