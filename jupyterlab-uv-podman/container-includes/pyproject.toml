@@ -44,11 +44,11 @@ dependencies = [
   "numba",
 
   "jupyterlab_lsp",
-  "python-lsp-server[all]",
+#  "python-lsp-server[all]",
   "jupyterlab-git",
   # todo: get ty to work with lsp plugin
   #"ruff",
-  #"ty"
+  "ty"
 ]
 
 

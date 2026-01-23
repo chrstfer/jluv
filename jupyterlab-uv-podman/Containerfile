@@ -13,11 +13,6 @@
 # Original is Copyright (c) Jupyter Development Team.
 # Distributed under the terms of the Modified BSD License.
 
-# ARG REGISTRY=quay.io
-# ARG OWNER=jupyter
-# ARG BASE_IMAGE=$REGISTRY/$OWNER/minimal-notebook
-# FROM $BASE_IMAGE
-
 FROM ubuntu:24.04
 COPY --from=ghcr.io/astral-sh/uv:0.9.15 /uv /uvx /bin/
 
@@ -32,6 +27,8 @@ ARG NB_UID="1000"
 ARG NB_GID="100"
 
 USER root
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update --yes
 RUN apt-get upgrade --yes
@@ -54,7 +51,7 @@ RUN apt-get install --yes --no-install-recommends \
     nano-tiny \
     tzdata \
     unzip \
-    vim-tiny \
+#    vim-tiny \
     openssh-client \
     less \
     texlive-xetex \
@@ -76,17 +73,12 @@ RUN apt-get install --yes --no-install-recommends \
     nodejs
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Create alternative for nano -> nano-tiny
+RUN update-alternatives --install /usr/bin/nano nano /bin/nano-tiny 10
+# Set locale and default bash settings
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
     echo "C.UTF-8 UTF-8" >> /etc/locale.gen && \
     locale-gen
-
-# Create alternative for nano -> nano-tiny
-RUN update-alternatives --install /usr/bin/nano nano /bin/nano-tiny 10
-
-# TODO: how necessary is this?
-COPY ${CONTAINER_INCLUDES}/fix-permissions /usr/local/bin/fix-permissions
-RUN chmod a+rx /usr/local/bin/fix-permissions
-
 # enable colors for all users
 RUN sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' /etc/skel/.bashrc
 
@@ -95,6 +87,9 @@ RUN if grep -q "${NB_UID}" /etc/passwd; then \
         userdel --remove $(id -un "${NB_UID}"); \
     fi
 
+# fix-permissions script from jupyter official images
+COPY ${CONTAINER_INCLUDES}/fix-permissions /usr/local/bin/fix-permissions
+RUN chmod a+rx /usr/local/bin/fix-permissions
 # Create "${NB_USER}" user (`jluv` by default) with UID="${NB_UID}" (`1000` by
 # default) and in the 'users' group and make sure these dirs are writable by the
 # `users` group.
@@ -121,10 +116,6 @@ ENV SHELL=/bin/bash \
     UV_TOOL_BIN_DIR=/home/${NB_USER}/.uv_tools \
     JP_SOCK=/home/${NB_USER}/.sockets/jupyterlab-server.sock
 
-# Set the port stuff (TODO: make this an option)
-# ENV JUPYTER_PORT=8888
-# EXPOSE $JUPYTER_PORT
-
 # Dropping support for hooks
 # RUN mkdir /usr/local/bin/start-notebook.d && mkdir /usr/local/bin/before-notebooks.d
 
@@ -136,17 +127,14 @@ WORKDIR /home/${NB_USER}
 COPY --chown=${NB_UID}:${NB_GID} ${CONTAINER_INCLUDES}/pyproject.toml /home/${NB_USER}/
 # Sync uv before doing the Jupyter stuff
 RUN printf "%s\n" "${PYTHON_VERSION}" > /home/${NB_USER}/.python-version && uv sync
-# Import matplotlib the first time to build the font cache
-RUN MPLBACKEND=Agg uv run python -c "import matplotlib.pyplot"
-
-# Copy /etc/jupyter files as late as possible to avoid cache busting
-COPY ${CONTAINER_INCLUDES}/etc/jupyter_server_config.py ${CONTAINER_INCLUDES}/etc/docker_healthcheck.py /etc/jupyter/
 # Run jupyter setup
 RUN uv run jupyter server --generate-config && uv run jupyter lab clean
+# Import matplotlib the first time to build the font cache
+RUN MPLBACKEND=Agg uv run python -c "import matplotlib.pyplot"
 # Add kernel
 RUN uv run --python 3.12 -m ipykernel install --user --name uvkernel --display-name "Python (uv 3.12 kernel)"
-
-RUN mkdir work notebooks .sockets && rm -rf "/home/${NB_USER}/.cache/yarn"
+RUN ls -la /home/${NB_USER}/.cache
+RUN mkdir work notebooks .sockets
 # Jupyter config adds as late as possible to avoid cache busting
 COPY --chown=${NB_UID}:${NB_GID} ${CONTAINER_INCLUDES}/.jupyter/jupyter_server_config.py /home/${NB_USER}/.jupyter/jupyter_server_config.py
 COPY --chown=${NB_UID}:${NB_GID} ${CONTAINER_INCLUDES}/.jupyter/jupyter_server_config.d /home/${NB_USER}/.jupyter/jupyter_server_config.d/
@@ -158,17 +146,15 @@ RUN fix-permissions "/home/${NB_USER}"
 # Copy /usr/local/bin files as late as possible to avoid cache busting
 COPY ${CONTAINER_INCLUDES}/usr.local.bin/* /usr/local/bin/
 
+# Set the port stuff (TODO: make this an option)
+# ENV JUPYTER_PORT=8888
+# EXPOSE $JUPYTER_PORT
+
 # Configure container entrypoint
 ENTRYPOINT ["tini", "-g", "--", "/usr/local/bin/start.sh"]
+CMD uv run --python 3.12 jupyter lab --no-browser --sock "${JP_SOCK}" --IdentityProvider.token='pw !2345'
 
+# TODO: Multistage, remove uv after syncing project necessities, clean up
 # Add Project
 # TODO: add some variables for project name, python version, etc, then a RUN that creates a project kernel; then we can cut down the main uv requirements
 # ADD --chown=${NB_UID}:${NB_GID} project ${HOME}/project
-
-USER ${NB_USER}
-
-# CMD ["bash", "-c", "~/scripts/command_start.sh"]
-CMD uv run --python 3.12 jupyter lab --no-browser --sock "${JP_SOCK}" --IdentityProvider.token='pw !2345'
-
-# if you build and tag jluv:latest then you can create with 
-# podman create --name jluv-dev --replace --volume "$PWD/sockets:/home/jluv/sockets" --volume "$PWD/notebooks:/home/jluv/notebooks" jluv:latest
