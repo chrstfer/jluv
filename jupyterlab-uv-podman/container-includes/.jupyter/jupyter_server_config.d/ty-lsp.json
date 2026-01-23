@@ -1,0 +1,18 @@
+{
+  "LanguageServerManager": {
+    "language_servers": {
+      "ty": {
+          "version": 2,
+          "argv": ["uv", "run", "ty", "server"],
+          "display_name": "ty lsp server",
+          "languages": [
+              "python"
+          ],
+          "mime_types": [
+              "text/python",
+              "text/x-python"
+          ]
+      }
+    }
+  }
+}
