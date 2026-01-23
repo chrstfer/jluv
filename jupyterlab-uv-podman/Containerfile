@@ -133,7 +133,6 @@ RUN uv run jupyter server --generate-config && uv run jupyter lab clean
 RUN MPLBACKEND=Agg uv run python -c "import matplotlib.pyplot"
 # Add kernel
 RUN uv run --python 3.12 -m ipykernel install --user --name uvkernel --display-name "Python (uv 3.12 kernel)"
-RUN ls -la /home/${NB_USER}/.cache
 RUN mkdir work notebooks .sockets
 # Jupyter config adds as late as possible to avoid cache busting
 COPY --chown=${NB_UID}:${NB_GID} ${CONTAINER_INCLUDES}/.jupyter/jupyter_server_config.py /home/${NB_USER}/.jupyter/jupyter_server_config.py
